@@ -57,7 +57,7 @@ def check_for_key_press():
 # GENERAL STUFF
 win_wt, win_ht = 853, 480
 fps_clock = pygame.time.Clock()
-fps = 60
+fps = 120
 
 win = pygame.display.set_mode((win_wt, win_ht))
 pygame.display.set_caption("NO INTERNET")
@@ -87,7 +87,7 @@ class Player(object):
     def draw(self, win):
         win.blit(self.img, (int(self.x), int(self.y)))
 
-    def do_jump(self):
+    def do_jump(self, dt):
         keys = pygame.key.get_pressed()
 
         if self.isJump == False:
@@ -99,7 +99,7 @@ class Player(object):
                 dirn = 1
                 if self.jump_offset < 0:
                     dirn *= -1
-                self.y -= (self.jump_offset**2) * 0.2 * dirn
+                self.y -= (self.jump_offset**2) * 0.2 * dirn * dt * fps
                 self.jump_offset -= 1
 
             else:
@@ -120,8 +120,8 @@ class Enemy(object):
     def draw(self, win):
         win.blit(self.img, (self.x, self.y))
 
-    def move(self):
-        self.x -= self.vel
+    def move(self, dt):
+        self.x -= int(self.vel * dt)
 # ====================================================================================== #
 
 
@@ -150,8 +150,9 @@ class Sprite(object):
 # ====================================================================================== #
 def main():
     pygame.init()
-    speed = 3
-    level = 3
+    vel = 3
+    speed = vel * 120
+    level = 4
     os.environ["SDL_VIDEO_WINDOW_POS"] = "0, 0"
     player = Player(20, 389 - player_img.get_rect().height + 10)
     enemies = []
@@ -209,12 +210,15 @@ def main():
         groundx = 0
         
         while True:
+
+            dt = fps_clock.tick(fps) / 1000
+
             win.fill((0, 0, 0))
 
             sky_img = load_img("sky.png").convert()
             rel_sky = skyx % sky_img.get_rect().width
             win.blit(sky_img, (rel_sky - sky_img.get_rect().width, 0))
-            skyx -= 1
+            skyx -= int(1 * dt + 1)
 
             if rel_sky < (win_wt):
                 win.blit(sky_img, (rel_sky, 0))
@@ -222,7 +226,7 @@ def main():
             ground_img = load_img("ground.png").convert()
             rel_ground = groundx % ground_img.get_rect().width
             win.blit(ground_img, (rel_ground - ground_img.get_rect().width, 240))
-            groundx -= speed
+            groundx -= int(speed * dt)
 
             if rel_ground < (win_wt):
                 win.blit(ground_img, (rel_ground, 240))
@@ -234,10 +238,10 @@ def main():
                     enemy = Enemy(i, 389 - enemy_img.get_rect().height + 10, speed)
                     enemies.append(enemy)
 
-            player.do_jump()
+            player.do_jump(dt)
             
             for enemy in enemies[:]:
-                enemy.move()
+                enemy.move(dt)
 
             enemies[:] = [enemy for enemy in enemies if enemy.x +
                           enemy.img.get_rect().width > -5]
@@ -245,7 +249,7 @@ def main():
             redraw_game_win()
             out_events()
 
-            fps_clock.tick(fps)
+            
 
 # _________________________________________________________
 
