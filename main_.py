@@ -57,7 +57,7 @@ def check_for_key_press():
 # GENERAL STUFF
 win_wt, win_ht = 853, 480
 fps_clock = pygame.time.Clock()
-fps = 120
+fps = 90
 
 win = pygame.display.set_mode((win_wt, win_ht))
 pygame.display.set_caption("NO INTERNET")
@@ -66,7 +66,7 @@ pygame.display.set_icon(load_img("ico.png"))
 # IMAGES
 cactus_1 = load_img("cactus_1.png").convert_alpha()
 cactus_2 = load_img("cactus_2.png").convert_alpha()
-enemy_img = random.choice([cactus_1, cactus_2])
+cactus_3 = load_img("cactus_3.png").convert_alpha()
 
 player_img = load_img("test.png").convert_alpha()
 # ====================================================================================== #
@@ -81,7 +81,7 @@ class Player(object):
         self.isJump = False
         self.img = player_img
 
-        self.max_jump = 12
+        self.max_jump = 11
         self.jump_offset = self.max_jump
 
     def draw(self, win):
@@ -99,23 +99,28 @@ class Player(object):
                 dirn = 1
                 if self.jump_offset < 0:
                     dirn *= -1
-                self.y -= (self.jump_offset**2) * 0.2 * dirn * dt * fps
+                self.y -= (self.jump_offset**2) * 0.185 * dirn * 0.012 * fps
+                # print(dt)
+                # print(round(dt, 2))
                 self.jump_offset -= 1
 
             else:
                 self.isJump = False
                 self.jump_offset = self.max_jump
+
+    def do_another_jump(self, dt):
+        pass
 # ====================================================================================== #
 
 
 # ====================================================================================== #
 class Enemy(object):
 
-    def __init__(self, x, y, speed):
+    def __init__(self, x, y, speed, img):
         self.x = x
         self.y = y
         self.vel = speed
-        self.img = enemy_img
+        self.img = img
 
     def draw(self, win):
         win.blit(self.img, (self.x, self.y))
@@ -153,6 +158,7 @@ def main():
     vel = 3
     speed = vel * 120
     level = 4
+    
     os.environ["SDL_VIDEO_WINDOW_POS"] = "0, 0"
     player = Player(20, 389 - player_img.get_rect().height + 10)
     enemies = []
@@ -208,10 +214,12 @@ def main():
     def run_game():
         skyx = 0
         groundx = 0
+
         
         while True:
 
             dt = fps_clock.tick(fps) / 1000
+            # print(dt)
 
             win.fill((0, 0, 0))
 
@@ -231,14 +239,16 @@ def main():
             if rel_ground < (win_wt):
                 win.blit(ground_img, (rel_ground, 240))
 
-            xcoord = random.sample(range(win_wt + 50, win_wt + 750, 70), level)
+            xcoord = random.sample(range(win_wt + 50, win_wt + 800, 100), level)
 
             if len(enemies) < level:
                 for i in xcoord:
-                    enemy = Enemy(i, 389 - enemy_img.get_rect().height + 10, speed)
+                    enemy_img = random.choice([cactus_1, cactus_2, cactus_3])
+                    enemy = Enemy(i, 389 - enemy_img.get_rect().height + 10, speed, enemy_img)
                     enemies.append(enemy)
 
             player.do_jump(dt)
+            # player.do_another_jump(dt)
             
             for enemy in enemies[:]:
                 enemy.move(dt)
@@ -248,8 +258,6 @@ def main():
 
             redraw_game_win()
             out_events()
-
-            
 
 # _________________________________________________________
 
