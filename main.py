@@ -1,17 +1,50 @@
-import os
+# THIS A CHROME OFFLINE DINO GAME RIPOFF MADE FOR PURELEY ENTERTAINMENT PURPOSES,
+# ALL ASSETS ARE CREATED BY ME USING SUBLIME TEXT AND PAINT.NET.
+# CURRENTLY, THERE IS NO DUCK FEATURE OR BIRDS, THE COLLISION IS SLIGHTLY OFF AND 
+# THE GAME LACKS A WORKING SCORING SYSTEM. ARIGATO
+
+
 import sys
-import pygame
-import random
+import os
 import time
+import random
+import pygame
+import math
 from pygame.locals import *
 
+# ====================================================================================== #
+# SYNTHETIC SUGARS
 
-# SYNTHETIC SUGAR FOR CODE GRACEFUL CODE EXIT
+
+# FOR GRACEFUL EXITS
 def terminate():
     pygame.quit()
     sys.exit()
 
 
+# FOR EXIT OUT OF THE GAME LOOP
+def out_events():
+    for event in pygame.event.get():
+        if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
+            terminate()
+
+
+# PATHNAME
+def fullname(name):
+    return os.path.join("data", name)
+
+
+# LOAD IMAGE
+def load_img(name):
+    try:
+        image = pygame.image.load(fullname(name))
+    except pygame.error as e:
+        print("Can't load image:", name)
+        raise SystemExit(e)
+    return image
+
+
+# CHECKS FOR KEY PRESSES
 def check_for_key_press():
     if len(pygame.event.get(QUIT)) > 0:
         terminate()
@@ -21,54 +54,32 @@ def check_for_key_press():
     if key_up_events[0].key == K_ESCAPE:
         terminate()
     return key_up_events[0].key
-
-# GAME EXIT
-
-
-def out_events():
-    for event in pygame.event.get():
-        if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
-            terminate()
+# ====================================================================================== #
 
 
-def collide(item, obj):
-    offset_x = item.x - obj.x
-    offset_y = item.y - obj.y
-    return item.mask.overlap(obj.mask, (int(offset_x), int(offset_y))) != None
-    pass
+# ====================================================================================== #
+# GLOBAL VARIABLES
 
 
-# ENEMY CLASS
-class Enemy(object):
+# GENERAL STUFF
+win_wt, win_ht = 853, 480
+fps_clock = pygame.time.Clock()
+fps = 90
 
-    def __init__(self, x):
-        self.x = x
-        self.vel = speed
-        self.hit = False
-        self.img = random.choice(
-            [load_img("cactus_1.png"), load_img("cactus_2.png")])
-        self.mask = pygame.mask.from_surface(self.img)
-        self.y = 389 - self.img.get_rect().height + 10
+win = pygame.display.set_mode((win_wt, win_ht))
+pygame.display.set_caption("NO INTERNET")
+pygame.display.set_icon(load_img("ico.png"))
 
-    def draw(self, win):
-        win.blit(self.img, (self.x, self.y))
+# IMAGES
+cactus_1 = load_img("cactus_1.png").convert_alpha()
+cactus_2 = load_img("cactus_2.png").convert_alpha()
+cactus_3 = load_img("cactus_3.png").convert_alpha()
 
-    # MOVES THE ENEMY AT THE SAME SPEED AS THE GROUND, IN OPPOSITE DIRECTION TO GIVE THE  
-    # ILLUSION OF THE ENEMY COMING TOWARDS THE PLAYER OR THE PLAYER RUNNING TOWARDS THE ENEMY
-
-    def move(self):
-        self.x -= self.vel
-
-    def collide_mask(self, obj):
-        return collide(self, obj)
-
-    def collide_distance(self, obj):
-        pass
-
-    def collide_rect(self, obj):
-        return (obj.img.get_rect().colliderect(self.img.get_rect())) 
+player_img = load_img("test.png").convert_alpha()
+# ====================================================================================== #
 
 
+# ====================================================================================== #
 # PLAYER CLASS
 class Player(object):
 
@@ -76,49 +87,100 @@ class Player(object):
         self.x = x
         self.y = y
         self.isJump = False
-        self.img = load_img("test.png")
-
-        # SQUARE THIS NUMBER TO GET THE MAX JUMP HEIGHT IN PEXEL
-        self.max_jump = 19
-        self.jump_offset = self.max_jump
+        self.img = player_img
         self.mask = pygame.mask.from_surface(self.img)
-        self.hit = False
+
+        self.max_jump = 11
+        self.jump_offset = self.max_jump
 
     def draw(self, win):
         win.blit(self.img, (int(self.x), int(self.y)))
-        pass 
 
-    # MAKES THE PLAYER JUMP
-    # TO STIMULATE GRAVITY LIKE JUMPIJNG, QUADRITIC EQUATION IS USED.
-    def do_jump(self):
+    def get_width(self):
+        return self.img.get_rect().width
+    
+    def get_height(self):
+        return self.img.get_rect().height
+
+    # TO STIMUATE REAL LIFE JUMPING, A QUADRATIC EQUATION IS USED.
+    def do_jump(self, dt):
         keys = pygame.key.get_pressed()
-        if self.isJump == False:
+
+        if not(self.isJump):
+            self.check_bound()
             if keys[K_SPACE]:
                 self.isJump = True
 
         else:
-
             if self.jump_offset >= -self.max_jump:
-                neg = 1
-
+                dirn = 1
                 if self.jump_offset < 0:
-                    neg *= -1
-                self.y -= (self.jump_offset**2) * 0.05 * neg
+                    dirn *= -1
+                if fps == 120:
+                    dt = 0.01
+                self.y -= (self.jump_offset**2) * 0.185 * dirn * dt * fps
+                # print(dt)
+                # print(round(dt, 2))
                 self.jump_offset -= 1
 
             else:
                 self.isJump = False
                 self.jump_offset = self.max_jump
 
+    # CHECKS IF THE PLAYER IS IN IT'S NEUTRAL POSITION 
+    def check_bound(self):
+        if self.y + self.img.get_rect().height - 10 != 389:
+            self.y = 389 - self.img.get_rect().height + 10
 
-class sprite(object):
+# ====================================================================================== #
+
+
+# ====================================================================================== #
+
+# ENEMY CLASS
+class Enemy(object):
+
+    def __init__(self, x, y, speed, img):
+        self.x = x
+        self.y = y
+        self.vel = speed
+        self.img = img
+        self.mask = pygame.mask.from_surface(self.img)
+
+    def draw(self, win):
+        win.blit(self.img, (self.x, self.y))
+
+    def move(self, dt):
+        self.x -= int(self.vel * dt)
+
+    def get_width(self):
+        return self.img.get_rect().width
+    
+    def get_height(self):
+        return self.img.get_rect().height
+
+    def collide_mask(self, obj):
+        return collide(self, obj)
+
+    def collide_distance(self, obj):
+        x, y = self.img.get_rect().center[0], self.img.get_rect().center[1]
+        w, z = obj.img.get_rect().center[0], obj.img.get_rect().center[1]
+        if math.hypot(x - w, y - z) >= (self.img.get_rect().center[0] + obj.img.get_rect().center[0]):
+            print(math.hypot(x - w, y - z))
+            print(self.img.get_rect().center[0] + obj.img.get_rect().center[0])
+            return True
+# ====================================================================================== #
+
+
+# ====================================================================================== #
+class Sprite(object):
 
     def __init__(self, filename, cols, rows):
-        self.sheet = load_img(filename)
+        self.sheet = load_img(filename).convert_alpha()
 
         self.cols = cols
         self.rows = rows
-        self.cell_cnt = cols * rows
+        self.cell_cnt = rows * cols
 
         self.rect = self.sheet.get_rect()
         w = self.cell_w = self.rect.width / cols
@@ -129,157 +191,128 @@ class sprite(object):
 
     def draw(self, win, cell_index, x, y):
         win.blit(self.sheet, (x, y), self.cells[cell_index])
+# ====================================================================================== #
 
 
-# SYNTHETIC SYGAR, LOADS AN IMAGE, AND CONVERTS THE ALPHA
-def load_img(name):
-    fullname = os.path.join("data", name)
-    try:
-        image = pygame.image.load(fullname)
-    except pygame.error as e:
-        print("Can't load image: ", name)
-        raise SystemExit(e)
-    image = image.convert_alpha()
-    return image
-
-# START SCREEN
-def start_screen():
-    font = pygame.font.Font(os.path.join("data", "font.ttf"), 70)
-    title_font = font.render("No Internet", True, (200, 0, 0))
-
-    font_2 = pygame.font.Font(os.path.join("data", "font.ttf"), 30)
-    title_ = font_2.render("Press Space to Jump", True, (200, 0, 0))
-    logo = load_img("logo.png")
-
-    player = Player(20, 389 - load_img("test.png").get_rect().height + 10)
-
-    while True:
-        bg = pygame.image.load(os.path.join("data", "mountains.png")).convert()
-        display_surf.blit(bg, (0, 0))
-        if check_for_key_press():
-            pygame.event.get()
-            return
-
-        display_surf.blit(title_font, (win_wt // 2 - title_font.get_rect().width //
-                                       2, win_ht // 5))
-
-        display_surf.blit(logo, (win_wt // 2 - logo.get_rect().width //
-                                 2, win_ht // 2 - logo.get_rect().height // 2))
-
-        display_surf.blit(title_, (win_wt // 2 - title_.get_rect().width //
-                                       2, 7 * win_ht // 8))
-
-        for event in pygame.event.get():
-            if event.type == QUIT:
-                terminate()
-
-        player.draw(display_surf)
-        pygame.display.update()
-        fps_clock.tick(fps)
+# ====================================================================================== #
+def collide(item, obj):
+    offset_x = item.x - obj.x
+    offset_y = item.y - obj.y
+    return item.mask.overlap(obj.mask, (int(offset_x), int(offset_y))) != None
+    pass
+# ====================================================================================== #
 
 
-# MAIN FUNCTION
+# ====================================================================================== #
 def main():
-    global win_wt, win_ht, speed, display_surf, fps, fps_clock
-
-    # VARIABLES
-    win_wt, win_ht = 853, 480
-    fps = 120
-    speed = 2
-
-    # SETS THE LOCATION OF THE WINDOW
-
-    # INITAILISES THE DISPLAY WINDOW
-    display_surf = pygame.display.set_mode((win_wt, win_ht))
     pygame.init()
+    vel = 3
+    speed = vel * 120
+    level = 4
 
-    # TO LIMIT THE FPS
-    fps_clock = pygame.time.Clock()
+    
+    # _________________________________________________________
+    def start_screen():
+        font = pygame.font.Font(os.path.join("data", "font.ttf"), 70)
+        title_font = font.render("No Internet", True, (200, 0, 0))
 
-    # GAMEPLAY LOOP
-    def run_game():
-        global index, x, x_2
-        index = 0
-        x = 0
-        x_2 = 0
+        font_2 = pygame.font.Font(os.path.join("data", "font.ttf"), 30)
+        title_ = font_2.render("Press Space to Jump", True, (200, 0, 0))
+        logo = load_img("logo.png")
 
-        # THE NUMBER OF ENEMIES ON THE SCREEN AT A TIME
-        level = 4
-
-        # INITIZATION OF THE CHARACTERS
         player = Player(20, 389 - load_img("test.png").get_rect().height + 10)
+
+        while True:
+            bg = pygame.image.load(os.path.join("data", "mountains.png")).convert()
+            win.blit(bg, (0, 0))
+            if check_for_key_press():
+                pygame.event.get()
+                return
+
+            win.blit(title_font, (win_wt // 2 - title_font.get_rect().width //
+                                           2, win_ht // 5))
+
+            win.blit(logo, (win_wt // 2 - logo.get_rect().width //
+                                     2, win_ht // 2 - logo.get_rect().height // 2))
+
+            win.blit(title_, (win_wt // 2 - title_.get_rect().width //
+                                           2, 7 * win_ht // 8))
+
+            for event in pygame.event.get():
+                if event.type == QUIT:
+                    terminate()
+
+            player.draw(win)
+            pygame.display.update()
+            fps_clock.tick(fps)
+
+
+    # _________________________________________________________
+    def run_game():
+        skyx = 0
+        groundx = 0
+        run = True
+
+        # INITIALIZE THE ACTORS
+        player = Player(20, 389 - player_img.get_rect().height + 10)
         enemies = []
+        
+        while run:
+            player.draw(win)
 
-        # REDRAWS THE GAME WINDOW, THIS IS WHAT HAPPENS EVERY 1 BY FPS'TH
-        # SECOND OF THE GAME
-        def redraw_game_win():
-            global index, x, x_2
-
-            display_surf.fill((0, 0, 0))
-
-            # GROUND MOVEMENT
-            bg_img = pygame.image.load(
-                os.path.join("data", "ground.png")).convert()
-            rel_x = x % bg_img.get_rect().width
-            display_surf.blit(bg_img, (rel_x - bg_img.get_rect().width, 240))
-            x -= speed
-            if rel_x < (win_wt):
-                display_surf.blit(bg_img, (rel_x, 240))
-
-            # SKY MOVEMENT
-            bg_img_2 = pygame.image.load(
-                os.path.join("data", "sky.png")).convert()
-            rel_x_2 = x_2 % bg_img_2.get_rect().width
-            display_surf.blit(
-                bg_img_2, (rel_x_2 - bg_img_2.get_rect().width, 0))
-            x_2 -= 1
-
-            if rel_x_2 < (win_wt):
-                display_surf.blit(bg_img_2, (rel_x_2, 0))
-
-            # s.draw(display_surf, index % s.cell_cnt, 20, 389 - 39)
-            # index += 1
-
-            # PLAYER
-            player.draw(display_surf)
-
-            # ENEMEY
             for enemy in enemies[:]:
-                enemy.draw(display_surf)
-
-            # UPDATES THE DISPLAY
+                enemy.draw(win)
+            
             pygame.display.update()
 
-        # MAIN GAME LOOP. FUNNY IT IS THE SMALLEST BLOCK OF CODE IN ALL THIS.
-        while True:
-            redraw_game_win()
-            player.do_jump()
 
             out_events()
+            dt = fps_clock.tick(fps) / 1000
+            # print(dt)
+
+            sky_img = load_img("sky.png").convert()
+            rel_sky = skyx % sky_img.get_rect().width
+            win.blit(sky_img, (rel_sky - sky_img.get_rect().width, 0))
+            skyx -= int(1 * dt + 1)
+
+            if rel_sky < (win_wt):
+                win.blit(sky_img, (rel_sky, 0))
+
+            ground_img = load_img("ground.png").convert()
+            rel_ground = groundx % ground_img.get_rect().width
+            win.blit(ground_img, (rel_ground - ground_img.get_rect().width, 240))
+            groundx -= int(speed * dt)
+
+            if rel_ground < (win_wt):
+                win.blit(ground_img, (rel_ground, 240))
+
+            xcoord = random.sample(range(win_wt + 50, win_wt + 800, 100), level)
 
             if len(enemies) < level:
-                for i in range(level):
-                    enemy = Enemy(random.randrange(
-                        win_wt + 50, win_wt + 1050, 100))
+                for i in xcoord:
+                    enemy_img = random.choice([cactus_1, cactus_2, cactus_3])
+                    enemy = Enemy(i, 389 - enemy_img.get_rect().height + 10, speed, enemy_img)
                     enemies.append(enemy)
 
+            player.do_jump(dt)
+            # player.do_another_jump(dt)
+            
             for enemy in enemies[:]:
-                enemy.move()
-                if enemy.img.get_rect().colliderect(player.img.get_rect()):
-                    print("q")
-                    # time.sleep(0.5)
-                    # return
+                enemy.move(dt)
+                
+                if  (enemy.x + 4 <= player.x + player.get_width() and enemy.x + enemy.get_width() >=
+                    player.x) and (enemy.y + 16 <= player.y + player.img.get_rect().height):
+                    time.sleep(0.5)
+                    return
 
             enemies[:] = [enemy for enemy in enemies if enemy.x +
                           enemy.img.get_rect().width > -5]
 
-            fps_clock.tick(fps)
-
+    # _________________________________________________________
     while True:
         start_screen()
-
         run_game()
-
+# ====================================================================================== #
 
 if __name__ == "__main__":
     main()
