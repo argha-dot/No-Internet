@@ -1,7 +1,7 @@
 # THIS A CHROME OFFLINE DINO GAME RIPOFF MADE FOR PURELEY ENTERTAINMENT PURPOSES,
 # ALL ASSETS ARE CREATED BY ME USING SUBLIME TEXT AND PAINT.NET.
 # CURRENTLY, THERE IS NO DUCK FEATURE OR BIRDS, THE COLLISION IS SLIGHTLY OFF AND 
-# THE GAME LACKS A WORKING SCORING SYSTEM. ARIGATO
+# THE GAME LACKS A WORKING SCORING SYSTEM. ARIGATO.
 
 
 import sys
@@ -102,7 +102,7 @@ class Player(object):
     def get_height(self):
         return self.img.get_rect().height
 
-    # TO STIMUATE REAL LIFE JUMPING, A QUADRATIC EQUATION IS USED.
+    # TO STIMUATE JUMPING, A QUADRATIC EQUATION IS USED.
     def do_jump(self, dt):
         keys = pygame.key.get_pressed()
 
@@ -127,7 +127,7 @@ class Player(object):
                 self.isJump = False
                 self.jump_offset = self.max_jump
 
-    # CHECKS IF THE PLAYER IS IN IT'S NEUTRAL POSITION 
+    # CHECKS IF THE PLAYER IS IN IT'S NEUTRAL POSITION, AND IF NOT, PUTS IT THERE
     def check_bound(self):
         if self.y + self.img.get_rect().height - 10 != 389:
             self.y = 389 - self.img.get_rect().height + 10
@@ -212,6 +212,7 @@ def main():
 
     
     # _________________________________________________________
+    # STAR SCREEN
     def start_screen():
         font = pygame.font.Font(os.path.join("data", "font.ttf"), 70)
         title_font = font.render("No Internet", True, (200, 0, 0))
@@ -248,6 +249,7 @@ def main():
 
 
     # _________________________________________________________
+    # GAMEPLAY
     def run_game():
         skyx = 0
         groundx = 0
@@ -257,7 +259,9 @@ def main():
         player = Player(20, 389 - player_img.get_rect().height + 10)
         enemies = []
         
+        # MAIN GAME LOOP
         while run:
+
             player.draw(win)
 
             for enemy in enemies[:]:
@@ -268,8 +272,9 @@ def main():
 
             out_events()
             dt = fps_clock.tick(fps) / 1000
-            # print(dt)
 
+
+            # DRAWS THE SKY AND MOVES IT
             sky_img = load_img("sky.png").convert()
             rel_sky = skyx % sky_img.get_rect().width
             win.blit(sky_img, (rel_sky - sky_img.get_rect().width, 0))
@@ -278,6 +283,8 @@ def main():
             if rel_sky < (win_wt):
                 win.blit(sky_img, (rel_sky, 0))
 
+
+            # DRAWS THE GROUND AND MOVES IT
             ground_img = load_img("ground.png").convert()
             rel_ground = groundx % ground_img.get_rect().width
             win.blit(ground_img, (rel_ground - ground_img.get_rect().width, 240))
@@ -286,25 +293,32 @@ def main():
             if rel_ground < (win_wt):
                 win.blit(ground_img, (rel_ground, 240))
 
+            # CHOSES A RANDOM PLACE FOR THE ENEMY TO SPAWN
             xcoord = random.sample(range(win_wt + 50, win_wt + 800, 100), level)
 
+            
+            # GENERATES THE ENEMY LIST
             if len(enemies) < level:
                 for i in xcoord:
                     enemy_img = random.choice([cactus_1, cactus_2, cactus_3])
                     enemy = Enemy(i, 389 - enemy_img.get_rect().height + 10, speed, enemy_img)
                     enemies.append(enemy)
 
+            # MAKES THE PLAYER JUMP
             player.do_jump(dt)
-            # player.do_another_jump(dt)
             
+
+            # MOVES THE ENEMY
             for enemy in enemies[:]:
                 enemy.move(dt)
                 
+                # COLLISION
                 if  (enemy.x + 4 <= player.x + player.get_width() and enemy.x + enemy.get_width() >=
                     player.x) and (enemy.y + 16 <= player.y + player.img.get_rect().height):
                     time.sleep(0.5)
                     return
 
+            # REMOVES THE ENEMY IF IT GETS OUT OF THE SCREEN
             enemies[:] = [enemy for enemy in enemies if enemy.x +
                           enemy.img.get_rect().width > -5]
 
@@ -312,6 +326,7 @@ def main():
     while True:
         start_screen()
         run_game()
+
 # ====================================================================================== #
 
 if __name__ == "__main__":
