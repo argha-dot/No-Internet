@@ -1,6 +1,6 @@
 # THIS A CHROME OFFLINE DINO GAME RIPOFF MADE FOR PURELEY ENTERTAINMENT PURPOSES,
 # ALL ASSETS ARE CREATED BY ME USING SUBLIME TEXT AND PAINT.NET.
-# CURRENTLY, THERE IS NO DUCK FEATURE OR BIRDS, THE COLLISION IS SLIGHTLY OFF AND 
+# CURRENTLY, THERE IS NO DUCK FEATURE OR BIRDS, THE COLLISION IS SLIGHTLY OFF AND
 # THE GAME LACKS A WORKING SCORING SYSTEM. ARIGATO.
 
 
@@ -43,17 +43,6 @@ def load_img(name):
         raise SystemExit(e)
     return image
 
-
-# CHECKS FOR KEY PRESSES
-def check_for_key_press():
-    if len(pygame.event.get(QUIT)) > 0:
-        terminate()
-    key_up_events = pygame.event.get(KEYUP)
-    if len(key_up_events) == 0:
-        return None
-    if key_up_events[0].key == K_ESCAPE:
-        terminate()
-    return key_up_events[0].key
 # ====================================================================================== #
 
 
@@ -98,7 +87,7 @@ class Player(object):
 
     def get_width(self):
         return self.img.get_rect().width
-    
+
     def get_height(self):
         return self.img.get_rect().height
 
@@ -127,7 +116,8 @@ class Player(object):
                 self.isJump = False
                 self.jump_offset = self.max_jump
 
-    # CHECKS IF THE PLAYER IS IN IT'S NEUTRAL POSITION, AND IF NOT, PUTS IT THERE
+    # CHECKS IF THE PLAYER IS IN IT'S NEUTRAL POSITION, AND IF NOT, PUTS IT
+    # THERE
     def check_bound(self):
         if self.y + self.img.get_rect().height - 10 != 389:
             self.y = 389 - self.img.get_rect().height + 10
@@ -155,7 +145,7 @@ class Enemy(object):
 
     def get_width(self):
         return self.img.get_rect().width
-    
+
     def get_height(self):
         return self.img.get_rect().height
 
@@ -206,59 +196,93 @@ def collide(item, obj):
 # ====================================================================================== #
 def main():
     pygame.init()
-    vel = 3
-    speed = vel * 120
     level = 4
 
-    
     # _________________________________________________________
     # STAR SCREEN
     def start_screen():
         font = pygame.font.Font(os.path.join("data", "font.ttf"), 70)
         title_font = font.render("No Internet", True, (200, 0, 0))
 
-        font_2 = pygame.font.Font(os.path.join("data", "font.ttf"), 30)
-        title_ = font_2.render("Press Space to Jump", True, (200, 0, 0))
-        logo = load_img("logo.png")
 
+        def render_text(text, size=10):
+            font_2 = pygame.font.Font(os.path.join("data", "font.ttf"), size)
+            return font_2.render(text, True, (200, 0, 0))
+
+        # OPTIONS
+        start = [render_text("start", 20), [win_wt // 2 - render_text("start", 20).get_rect().width //
+                                        2 + 10, 5 * win_ht // 8]]
+        exit = [render_text("exit", 20),  [win_wt // 2 - render_text("exit", 20).get_rect().width //
+                                                      2 + 10, 6 * win_ht // 8 - 20]]
+
+        pos = [start, exit]
+        cur = 0
+
+        cursor = [load_img("cursor.png"), [start[1][0] - 25, start[1][1]]]
+        
+
+        logo = load_img("logo.png")
         player = Player(20, 389 - load_img("test.png").get_rect().height + 10)
 
         while True:
-            bg = pygame.image.load(os.path.join("data", "mountains.png")).convert()
+            bg = pygame.image.load(os.path.join(
+                "data", "mountains.png")).convert()
             win.blit(bg, (0, 0))
-            if check_for_key_press():
-                pygame.event.get()
-                return
-
-            win.blit(title_font, (win_wt // 2 - title_font.get_rect().width //
-                                           2, win_ht // 5))
-
-            win.blit(logo, (win_wt // 2 - logo.get_rect().width //
-                                     2, win_ht // 2 - logo.get_rect().height // 2))
-
-            win.blit(title_, (win_wt // 2 - title_.get_rect().width //
-                                           2, 7 * win_ht // 8))
-
+            
+            keys = pygame.key.get_pressed()
+            
             for event in pygame.event.get():
                 if event.type == QUIT:
                     terminate()
+                if event.type == KEYDOWN:
+                    if event.key == K_ESCAPE:
+                        terminate()
+
+                    if (event.key == K_w or event.key == K_UP) and cur > 0:
+                        cur -= 1
+                    if (event.key == K_s or event.key == K_DOWN) and cur < len(pos) - 1 :
+                        cur += 1
+            
+            if keys[K_SPACE] or keys[K_RETURN]:
+                if cur == 0:
+                    return  
+                if cur == 1:
+                    terminate()
+
+            if keys[K_LALT]:
+                return               
+            
+            cursor[1][0], cursor[1][1] = pos[cur][1][0] - 25, pos[cur][1][1]
+            win.blit(cursor[0], cursor[1])
+
+
+            win.blit(title_font, (win_wt // 2 - title_font.get_rect().width //
+                                  2, win_ht // 5))
+
+            win.blit(logo, (win_wt // 2 - logo.get_rect().width //
+                            2, win_ht // 2 - logo.get_rect().height // 2 - 30))
+
+
+            for position in pos:
+                win.blit(position[0], position[1])
 
             player.draw(win)
             pygame.display.update()
             fps_clock.tick(fps)
-
 
     # _________________________________________________________
     # GAMEPLAY
     def run_game():
         skyx = 0
         groundx = 0
+        vel = int(3)
+        speed = vel * 120
         run = True
 
         # INITIALIZE THE ACTORS
         player = Player(20, 389 - player_img.get_rect().height + 10)
         enemies = []
-        
+
         # MAIN GAME LOOP
         while run:
 
@@ -266,13 +290,11 @@ def main():
 
             for enemy in enemies[:]:
                 enemy.draw(win)
-            
-            pygame.display.update()
 
+            pygame.display.update()
 
             out_events()
             dt = fps_clock.tick(fps) / 1000
-
 
             # DRAWS THE SKY AND MOVES IT
             sky_img = load_img("sky.png").convert()
@@ -282,7 +304,6 @@ def main():
 
             if rel_sky < (win_wt):
                 win.blit(sky_img, (rel_sky, 0))
-
 
             # DRAWS THE GROUND AND MOVES IT
             ground_img = load_img("ground.png").convert()
@@ -294,27 +315,27 @@ def main():
                 win.blit(ground_img, (rel_ground, 240))
 
             # CHOSES A RANDOM PLACE FOR THE ENEMY TO SPAWN
-            xcoord = random.sample(range(win_wt + 50, win_wt + 800, 100), level)
+            xcoord = random.sample(
+                range(win_wt + 50, win_wt + 800, 100), level)
 
-            
             # GENERATES THE ENEMY LIST
             if len(enemies) < level:
                 for i in xcoord:
                     enemy_img = random.choice([cactus_1, cactus_2, cactus_3])
-                    enemy = Enemy(i, 389 - enemy_img.get_rect().height + 10, speed, enemy_img)
+                    enemy = Enemy(
+                        i, 389 - enemy_img.get_rect().height + 10, speed, enemy_img)
                     enemies.append(enemy)
 
             # MAKES THE PLAYER JUMP
             player.do_jump(dt)
-            
 
             # MOVES THE ENEMY
             for enemy in enemies[:]:
                 enemy.move(dt)
-                
+
                 # COLLISION
-                if  (enemy.x + 4 <= player.x + player.get_width() and enemy.x + enemy.get_width() >=
-                    player.x) and (enemy.y + 16 <= player.y + player.img.get_rect().height):
+                if (enemy.x + 4 <= player.x + player.get_width() and enemy.x + enemy.get_width() >=
+                        player.x) and (enemy.y + 17 <= player.y + player.img.get_rect().height):
                     time.sleep(0.5)
                     return
 
